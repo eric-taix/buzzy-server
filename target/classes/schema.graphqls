@@ -1,0 +1,55 @@
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
+
+enum TeamFilterType {
+    NAME, QUIZZ_ID
+}
+
+input TeamFilter {
+    type: TeamFilterType
+    desiratedValue: String
+}
+
+type Query {
+    # List all quizzes
+    quizzes: [Quizz!]!
+    # List all team aleady connected
+    teams(filter: TeamFilter): [Team!]!
+}
+
+type Quizz {
+    id: ID!
+    # The name of the Quizz
+    name: String
+    # List of team which will compete in this quizz
+    teams: [Team!]!
+}
+
+type Team {
+    # The unique ID
+    id: ID!
+    # The name of the team
+    name: String
+    # The team avatar, generated automatically from its name
+    avatarUrl: String
+    # The total number of points
+    points: Int
+    # The quizz in which the team will compete (can be null if the team has not already connected to a Quizz)
+    quizz: Quizz
+}
+
+type Mutation {
+    # Create a new Quizz
+    createQuizz(name: String!): Quizz
+    # Create a new team which will compete in the quizz
+    createTeam(name: String!): Team
+    # Update Team
+    updateTeam(teamId: ID!, name: String, points: Int, quizzId: ID): Team
+}
+
+type Subscription {
+    team(teamId: ID!): Team
+}

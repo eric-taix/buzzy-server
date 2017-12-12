@@ -1,0 +1,16 @@
+spring:
+      application:
+               name: quizz
+
+server:
+      port: 8080
+
+graphql:
+      servlet:
+               mapping: /graphql
+               enabled: true
+               corsEnabled: true
+graphiql:
+    mapping: /graphiql
+    endpoint: /graphql
+    enabled: true
