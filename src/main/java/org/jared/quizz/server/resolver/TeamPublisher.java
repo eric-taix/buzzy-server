@@ -4,9 +4,26 @@ import org.jared.quizz.server.model.Team;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TeamPublisher implements Publisher<Team> {
-    @Override
-    public void subscribe(Subscriber<? super Team> s) {
-        s.onNext(new Team().setName("Sub" + System.currentTimeMillis()));
+
+    private final Team team;
+    private List<Subscriber<? super Team>> subscribers = new ArrayList();
+
+    public TeamPublisher(Team team) {
+        this.team = team;
+        team.getModelChanges().subscribe(updatedTeam -> {
+            for (Subscriber subscriber : subscribers) {
+                subscriber.onNext(team);
+            }
+        });
     }
+
+    @Override
+    public void subscribe(Subscriber<? super Team> subscriber) {
+        subscribers.add(subscriber);
+    }
+
 }

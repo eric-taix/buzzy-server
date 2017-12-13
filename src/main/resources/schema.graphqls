@@ -14,18 +14,15 @@ input TeamFilter {
 }
 
 type Query {
-    # List all quizzes
-    quizzes: [Quizz!]!
     # List all team aleady connected
     teams(filter: TeamFilter): [Team!]!
 }
 
-type Quizz {
-    id: ID!
-    # The name of the Quizz
-    name: String
-    # List of team which will compete in this quizz
-    teams: [Team!]!
+enum State {
+    THINKING
+    BUZZED
+    PAUSED
+    WRONG
 }
 
 type Team {
@@ -37,17 +34,19 @@ type Team {
     avatarUrl: String
     # The total number of points
     points: Int
-    # The quizz in which the team will compete (can be null if the team has not already connected to a Quizz)
-    quizz: Quizz
+    # The state of the team
+    state: State
 }
 
 type Mutation {
-    # Create a new Quizz
-    createQuizz(name: String!): Quizz
     # Create a new team which will compete in the quizz
     createTeam(name: String!): Team
     # Update Team
-    updateTeam(teamId: ID!, name: String, points: Int, quizzId: ID): Team
+    updateTeam(teamId: ID!, name: String, points: Int): Team
+    # Buzz for a question. It will stop all other teams until the answer if true or false
+    buzz(teamId: ID!): Team
+    # Set the buzzed team to the right answer, add one point, all teams state are set to THINKING
+    correct: Team
 }
 
 type Subscription {

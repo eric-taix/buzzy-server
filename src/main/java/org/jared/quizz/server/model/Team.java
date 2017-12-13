@@ -1,14 +1,21 @@
 package org.jared.quizz.server.model;
 
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
+
 import java.util.UUID;
 
+import static org.jared.quizz.server.model.State.THINKING;
+
 public class Team {
+
+    private PublishSubject<Team> changeObservable = PublishSubject.create();
 
     private String id;
     private String name;
     private String avatarUrl;
-    private Quizz quizz;
     private int points;
+    private State state = THINKING;
 
     public Team() {
         this.id = UUID.randomUUID().toString();
@@ -24,6 +31,7 @@ public class Team {
 
     public Team setName(String name) {
         this.name = name;
+        changeObservable.onNext(this);
         return this;
     }
 
@@ -33,19 +41,7 @@ public class Team {
 
     public Team setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
-        return this;
-    }
-
-    public Quizz getQuizz() {
-        return quizz;
-    }
-
-    public Team setQuizz(Quizz quizz) {
-        if (this.quizz != null) {
-            this.quizz.getTeams().remove(this);
-        }
-        this.quizz = quizz;
-        quizz.addTeam(this);
+        changeObservable.onNext(this);
         return this;
     }
 
@@ -55,6 +51,21 @@ public class Team {
 
     public Team setPoints(Integer points) {
         this.points = points;
+        changeObservable.onNext(this);
         return this;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public Team setState(State state) {
+        this.state = state;
+        changeObservable.onNext(this);
+        return this;
+    }
+
+    public Observable<Team> getModelChanges() {
+        return changeObservable;
     }
 }

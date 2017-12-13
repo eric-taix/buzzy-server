@@ -1,0 +1,3 @@
+{
+  "query": "subscription  { \n    team(teamId: \"123\") {  name } } "
+}

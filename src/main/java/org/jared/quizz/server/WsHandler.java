@@ -15,30 +15,27 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.server.standard.SpringConfigurator;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import javax.websocket.OnMessage;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.singletonList;
 
-@Component
-@ServerEndpoint(value = "/graphql", configurator = SpringConfigurator.class)
-public class WsServer {
 
-    private static final Logger log = LoggerFactory.getLogger(WsServer.class);
+public class WsHandler extends TextWebSocketHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(WsHandler.class);
     private final AtomicReference<Subscription> subscriptionRef = new AtomicReference<>();
 
     @Autowired
     private GraphQLSchema graphQLSchema;
 
-    @OnMessage
-    public String onMessage(Session session, String message){
-        QueryParameters parameters = QueryParameters.from(message);
+    @Override
+    public void handleTextMessage(WebSocketSession session, TextMessage message) {
+        QueryParameters parameters = QueryParameters.from(message.getPayload());
 
         ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                 .query(parameters.getQuery())
@@ -61,17 +58,15 @@ public class WsServer {
         stockPriceStream.subscribe(new Subscriber<ExecutionResult>() {
 
             @Override
-            public void onSubscribe(Subscription s) {
-                subscriptionRef.set(s);
+            public void onSubscribe(Subscription subscription) {
+                subscriptionRef.set(subscription);
                 request(1);
             }
 
             @Override
-            public void onNext(ExecutionResult er) {
-                log.debug("Sending stick price update");
+            public void onNext(ExecutionResult executionResult) {
                 try {
-                    Object stockPriceUpdate = er.getData();
-                    session.getBasicRemote().sendText(JsonKit.toJsonString(stockPriceUpdate));
+                    session.sendMessage(new TextMessage(JsonKit.toJsonString(executionResult.getData())));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -80,7 +75,6 @@ public class WsServer {
 
             @Override
             public void onError(Throwable t) {
-                log.error("Subscription threw an exception", t);
                 try {
                     session.close();
                 } catch (IOException e) {
@@ -96,7 +90,6 @@ public class WsServer {
                 }
             }
         });
-        return null;
     }
 
     private void request(int n) {
