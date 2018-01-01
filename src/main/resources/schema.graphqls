@@ -5,7 +5,7 @@ schema {
 }
 
 enum TeamFilterType {
-    NAME, QUIZZ_ID
+    NAME
 }
 
 input TeamFilter {
@@ -16,6 +16,7 @@ input TeamFilter {
 type Query {
     # List all team aleady connected
     teams(filter: TeamFilter): [Team!]!
+    team(teamId: ID!): Team
 }
 
 enum State {
@@ -47,8 +48,10 @@ type Mutation {
     buzz(teamId: ID!): Team
     # Set the buzzed team to the right answer, add one point, all teams state are set to THINKING
     correct: Team
+    wrong: Team
 }
 
 type Subscription {
     team(teamId: ID!): Team
+    teams: [Team!]!
 }

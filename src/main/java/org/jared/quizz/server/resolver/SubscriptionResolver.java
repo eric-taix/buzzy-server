@@ -8,14 +8,20 @@ import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class SubscriptionResolver implements GraphQLSubscriptionResolver {
 
     @Autowired
     private Store store;
 
-    public Publisher<Team> getTeam(String teamId, DataFetchingEnvironment env) {
+    public Publisher<Team> getTeam(String teamId) {
         return new TeamPublisher(store.getTeam(teamId));
+    }
+
+    public Publisher<List<Team>> getTeams() {
+        return new TeamsPublisher(store);
     }
 
 }

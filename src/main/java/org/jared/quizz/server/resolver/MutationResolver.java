@@ -29,4 +29,6 @@ public class MutationResolver implements GraphQLMutationResolver {
     }
 
     public Team correct() { return store.correct(); }
+
+    public Team wrong() { return store.wrong(); }
 }

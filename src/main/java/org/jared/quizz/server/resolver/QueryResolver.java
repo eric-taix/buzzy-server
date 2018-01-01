@@ -21,4 +21,8 @@ public class QueryResolver implements GraphQLQueryResolver {
         return store.getTeams(filter);
     }
 
+    public Team team(String teamId) {
+        return store.getTeam(teamId);
+    }
+
 }

@@ -7,10 +7,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TeamResolver implements GraphQLResolver<Team> {
 
-    private static final String URL_PREFIX = "https://robohash.org/";
+    private static final String URL_PREFIX = "/avatar/";
+    private static final String URL_SUFFIX = "?bgset=any&sets=set1,set2,set3,set4";
 
     public String getAvatarUrl(Team team) {
-        return  URL_PREFIX + team.getName();
+        return  URL_PREFIX + team.getName() + URL_SUFFIX;
     }
 
 }

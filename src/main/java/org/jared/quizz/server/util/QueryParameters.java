@@ -38,9 +38,12 @@ public class QueryParameters {
     public static QueryParameters from(String queryMessage) {
         QueryParameters parameters = new QueryParameters();
         Map<String, Object> json = JsonKit.toMap(queryMessage);
-        parameters.query = (String) json.get("query");
-        parameters.operationName = (String) json.get("operationName");
-        parameters.variables = getVariables(json.get("variables"));
+        Map<String, Object> payloadJson = (Map<String, Object>) json.get("payload");
+        if (payloadJson != null) {
+            parameters.query = (String) payloadJson.get("query");
+            parameters.operationName = (String) payloadJson.get("operationName");
+            parameters.variables = getVariables(payloadJson.get("variables"));
+        }
         return parameters;
     }
 

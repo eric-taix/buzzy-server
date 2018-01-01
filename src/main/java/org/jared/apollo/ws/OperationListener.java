@@ -1,5 +1,7 @@
-package org.jared.quizz.server;
+package org.jared.apollo.ws;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -8,45 +10,48 @@ import graphql.execution.instrumentation.Instrumentation;
 import graphql.execution.instrumentation.tracing.TracingInstrumentation;
 import graphql.schema.GraphQLSchema;
 import org.jared.quizz.server.util.JsonKit;
-import org.jared.quizz.server.util.QueryParameters;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Collections.singletonList;
 
+@Component
+public class OperationListener {
 
-public class WsHandler extends TextWebSocketHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(WsHandler.class);
     private final AtomicReference<Subscription> subscriptionRef = new AtomicReference<>();
+
 
     @Autowired
     private GraphQLSchema graphQLSchema;
 
-    @Override
-    public void handleTextMessage(WebSocketSession session, TextMessage message) {
-        QueryParameters parameters = QueryParameters.from(message.getPayload());
+    public static final String ID = "id";
+    private static ObjectMapper mapper = new ObjectMapper();
 
+    public void onConnectionInit(WebSocketSession session, OperationMessage operationMessage) throws IOException {
+        session.sendMessage(prepare(OperationMessage.ack()));
+    }
+
+    public void onStart(WebSocketSession session, OperationMessage operationMessage) throws IOException {
+        session.getAttributes().put(ID, operationMessage.getId());
+        Query query = mapper.convertValue(operationMessage.getPayload(), Query.class);
         ExecutionInput executionInput = ExecutionInput.newExecutionInput()
-                .query(parameters.getQuery())
-                .variables(parameters.getVariables())
-                .operationName(parameters.getOperationName())
+                .query(query.getQuery())
+                .variables(query.getVariables())
+                .operationName(query.getOperationName())
                 .build();
 
-        Instrumentation instrumentation = new ChainedInstrumentation(
-                singletonList(new TracingInstrumentation())
-        );
-
+        Instrumentation instrumentation = new ChainedInstrumentation(singletonList(new TracingInstrumentation()));
         GraphQL graphQL = GraphQL
                 .newGraphQL(graphQLSchema)
                 .instrumentation(instrumentation)
@@ -54,8 +59,9 @@ public class WsHandler extends TextWebSocketHandler {
 
         ExecutionResult executionResult = graphQL.execute(executionInput);
 
-        Publisher<ExecutionResult> stockPriceStream = executionResult.getData();
-        stockPriceStream.subscribe(new Subscriber<ExecutionResult>() {
+        String fieldName = getFieldNameFromOperation(operationMessage);
+        Publisher<ExecutionResult> executionStream = executionResult.getData();
+        executionStream.subscribe(new Subscriber<ExecutionResult>() {
 
             @Override
             public void onSubscribe(Subscription subscription) {
@@ -66,7 +72,9 @@ public class WsHandler extends TextWebSocketHandler {
             @Override
             public void onNext(ExecutionResult executionResult) {
                 try {
-                    session.sendMessage(new TextMessage(JsonKit.toJsonString(executionResult.getData())));
+                    Map<String, Object> result = new HashMap<>();
+                    result.put(fieldName, executionResult.getData());
+                    session.sendMessage(prepare(OperationMessage.data((String) session.getAttributes().get(ID), result)));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -83,7 +91,6 @@ public class WsHandler extends TextWebSocketHandler {
 
             @Override
             public void onComplete() {
-                log.info("Subscription complete");
                 try {
                     session.close();
                 } catch (IOException e) {
@@ -92,10 +99,23 @@ public class WsHandler extends TextWebSocketHandler {
         });
     }
 
+    public void onError(WebSocketSession session, OperationMessage operationMessage, Exception ex) throws IOException {
+        session.sendMessage(prepare(OperationMessage.error((String) session.getAttributes().get(ID), ex)));
+    }
+
+    private TextMessage prepare(OperationMessage message) throws JsonProcessingException {
+        return new TextMessage(mapper.writeValueAsString(message));
+    }
+
     private void request(int n) {
         Subscription subscription = subscriptionRef.get();
         if (subscription != null) {
             subscription.request(n);
         }
+    }
+
+    protected String getFieldNameFromOperation(OperationMessage operationMessage) {
+        String operationName = (String)((Map)operationMessage.getPayload()).get("operationName");
+        return "onTeamChanged".equals(operationName) ? "team" : "teams";
     }
 }

@@ -19,10 +19,12 @@ public class TeamPublisher implements Publisher<Team> {
                 subscriber.onNext(team);
             }
         });
+
     }
 
     @Override
     public void subscribe(Subscriber<? super Team> subscriber) {
+        subscriber.onNext(this.team);
         subscribers.add(subscriber);
     }
 
