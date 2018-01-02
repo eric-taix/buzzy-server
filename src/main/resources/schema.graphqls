@@ -45,10 +45,11 @@ type Mutation {
     # Update Team
     updateTeam(teamId: ID!, name: String, points: Int): Team
     # Buzz for a question. It will stop all other teams until the answer if true or false
-    buzz(teamId: ID!): Team
+    buzz(teamId: ID!): Boolean
     # Set the buzzed team to the right answer, add one point, all teams state are set to THINKING
-    correct: Team
-    wrong: Team
+    correct: Boolean
+    wrong: Boolean
+    reset: Boolean
 }
 
 type Subscription {

@@ -26,6 +26,11 @@ public class Store {
     @ElementList
     private List<Team> teams = new ArrayList<>();
 
+
+    public Observable<List<Team>> getModelChanges() {
+        return changeObservable;
+    }
+
     public synchronized void addTeam(Team team) {
         teams.add(team);
         changeObservable.onNext(teams);
@@ -46,7 +51,7 @@ public class Store {
                 .collect(Collectors.toList());
     }
 
-    public synchronized Team buzz(String teamId) {
+    public synchronized Boolean buzz(String teamId) {
         Team curentTeam = teams.stream().filter(filterById(teamId)).findFirst().get();
         boolean teamHasBuzzzed = teams.stream().anyMatch(TEAM_HAS_BUZZED);
         if (!teamHasBuzzzed) {
@@ -57,9 +62,10 @@ public class Store {
                     team.setState(State.PAUSED);
                 }
             });
+            changeObservable.onNext(teams);
+            return true;
         }
-        changeObservable.onNext(teams);
-        return curentTeam;
+        return false;
     }
 
     public synchronized Team updateTeam(String teamId, String name, Integer points) {
@@ -79,12 +85,11 @@ public class Store {
     }
 
 
-    public Team getTeam(String teamId) {
+    public synchronized Team getTeam(String teamId) {
         return teams.stream().filter(filterById(teamId)).findFirst().get();
     }
 
-    public Team correct() {
-        Team buzzedTeam = teams.stream().filter(TEAM_HAS_BUZZED).findFirst().get();
+    public synchronized Boolean correct() {
         teams.forEach(team -> {
             if (State.BUZZED.equals(team.getState())) {
                 team.setPoints(team.getPoints() + 1);
@@ -92,14 +97,10 @@ public class Store {
             team.setState(State.THINKING);
         });
         changeObservable.onNext(teams);
-        return buzzedTeam;
+        return true;
     }
 
-    public Observable<List<Team>> getModelChanges() {
-        return changeObservable;
-    }
-
-    public Team wrong() {
+    public synchronized Boolean wrong() {
         Team buzzedTeam = teams.stream().filter(TEAM_HAS_BUZZED).findFirst().get();
         teams.forEach(team -> {
             if (!State.BUZZED.equals(team.getState()) && !State.WRONG.equals(team.getState())) {
@@ -108,6 +109,12 @@ public class Store {
         });
         buzzedTeam.setState(State.WRONG);
         changeObservable.onNext(teams);
-        return buzzedTeam;
+        return true;
+    }
+
+    public synchronized Boolean reset() {
+        teams.stream().forEach(team -> team.setState(State.THINKING));
+        changeObservable.onNext(teams);
+        return true;
     }
 }

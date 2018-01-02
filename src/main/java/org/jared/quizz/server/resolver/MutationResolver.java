@@ -24,11 +24,14 @@ public class MutationResolver implements GraphQLMutationResolver {
        return store.updateTeam(teamId, name, points);
     }
 
-    public Team buzz(String teamId) {
+    public Boolean buzz(String teamId) {
         return store.buzz(teamId);
     }
 
-    public Team correct() { return store.correct(); }
+    public Boolean correct() { return store.correct(); }
 
-    public Team wrong() { return store.wrong(); }
+    public Boolean wrong() { return store.wrong(); }
+
+    public Boolean reset() { return store.reset(); }
+
 }
