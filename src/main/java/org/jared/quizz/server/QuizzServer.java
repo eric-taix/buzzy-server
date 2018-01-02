@@ -6,9 +6,14 @@ import graphql.execution.ExecutionStrategy;
 import graphql.execution.SubscriptionExecutionStrategy;
 import graphql.servlet.ExecutionStrategyProvider;
 import org.jared.apollo.ws.ApolloWsHandler;
+import org.jared.quizz.server.model.Team;
+import org.simpleframework.xml.Serializer;
+import org.simpleframework.xml.core.Persister;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -23,13 +28,48 @@ import org.springframework.web.socket.server.HandshakeHandler;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
+import java.io.File;
+import java.util.List;
+
 @SpringBootApplication
 @EnableWebSocket
 @ComponentScan("org.jared")
 public class QuizzServer implements WebSocketConfigurer {
 
+    @Autowired
+    private Store store;
+
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(QuizzServer.class, args);
+        ApplicationContext ctx = SpringApplication.run(QuizzServer.class, args);
+        final Store store = ctx.getBean(Store.class);
+
+        load(store);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                save(store);
+            }
+        });
+    }
+
+    private static void save(Store store) {
+        Serializer serializer = new Persister();
+        try {
+            serializer.write(store, new File("data.xml"));
+            System.out.println("Data persisted");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void  load(Store store) throws Exception {
+        Serializer serializer = new Persister();
+        Store loadedStore = serializer.read(Store.class, new File("data.xml"));
+        System.out.println("Data loaded");
+        for(Team team : loadedStore.getTeams(null)) {
+            store.addTeam(team);
+        }
     }
 
     @Bean

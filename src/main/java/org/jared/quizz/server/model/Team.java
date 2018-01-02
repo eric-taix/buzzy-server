@@ -2,6 +2,7 @@ package org.jared.quizz.server.model;
 
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
+import org.simpleframework.xml.Attribute;
 
 import java.util.UUID;
 
@@ -11,10 +12,15 @@ public class Team {
 
     private PublishSubject<Team> changeObservable = PublishSubject.create();
 
+    @Attribute(required = false)
     private String id;
+    @Attribute(required = false)
     private String name;
+    @Attribute(required = false)
     private String avatarUrl;
+    @Attribute(required = false)
     private int points;
+    @Attribute(required = false)
     private State state = THINKING;
 
     public Team() {

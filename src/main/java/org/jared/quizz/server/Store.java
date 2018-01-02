@@ -5,6 +5,8 @@ import io.reactivex.subjects.PublishSubject;
 import org.jared.quizz.server.model.State;
 import org.jared.quizz.server.model.Team;
 import org.jared.quizz.server.model.TeamFilter;
+import org.simpleframework.xml.ElementList;
+import org.simpleframework.xml.Root;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,12 +17,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@Root
 public class Store {
-
-    private PublishSubject<List<Team>> changeObservable = PublishSubject.create();
 
     private static final Predicate<Team> TEAM_HAS_BUZZED = team -> State.BUZZED.equals(team.getState());
 
+    private transient PublishSubject<List<Team>> changeObservable = PublishSubject.create();
+    @ElementList
     private List<Team> teams = new ArrayList<>();
 
     public synchronized void addTeam(Team team) {
